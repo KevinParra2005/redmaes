@@ -39,4 +39,19 @@ exports.handler = async (event) => {
     if (data.error) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: data.error.messa
+        body: JSON.stringify({ error: data.error.message })
+      };
+    }
+
+    const reply = data.choices?.[0]?.message?.content?.trim() || "Sin respuesta";
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ reply })
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Error al conectar con OpenAI" })
+    };
+  }
+};
