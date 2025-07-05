@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Talk to the AI</title>
+  <style>
+    body { background: #181818; color: #fff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+    h1 { margin-bottom: 24px; }
+    #loginBtn { max-width: 300px; margin-bottom: 20px; }
+    .chat-container { background: #222; padding: 20px; border-radius: 10px; width: 100%; max-width: 600px; margin-top: 20px; }
+    .hidden { display: none; }
+    input[type="text"] { width: 80%; padding: 10px; border-radius: 5px; border: none; margin-bottom: 10px; }
+    button { padding: 10px; border: none; border-radius: 5px; background: #0f62fe; color: #fff; cursor: pointer; margin-left: 8px;}
+    button:hover { background: #2979ff; }
+    #chatBox { min-height: 120px; margin-top: 16px; }
+    .msg { margin: 10px 0; }
+    .user { color: #fff; }
+    .ai { color: #53a7f7; }
+  </style>
+</head>
+<body>
+  <h1>Talk to the AI</h1>
+  <button id="loginBtn">Iniciar sesión con Google</button>
+  <div id="chatWrapper" class="chat-container hidden">
+    <form id="chatForm" autocomplete="off" style="display: flex;">
+      <input type="text" id="userInput" placeholder="Escribe tu mensaje..." required />
+      <button type="submit" id="sendBtn">Enviar</button>
+    </form>
+    <div id="chatBox"></div>
+  </div>
+
+  <!-- Firebase SDK CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+  <script>
+    // Tu configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyC0x4NCSoSCi8wZG9s71GiA_0rK0Xu25GM",
+      authDomain: "redmaesxx.firebaseapp.com",
+      projectId: "redmaesxx",
+      appId: "1:201151216427:web:a259e7cf5ff1894833e36e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    const loginBtn = document.getElementById('loginBtn');
+    const chatWrapper = document.getElementById('chatWrapper');
+    const sendBtn = document.getElementById('sendBtn');
+    const userInput = document.getElementById('userInput');
+    const chatBox = document.getElementById('chatBox');
+    const chatForm = document.getElementById('chatForm');
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginBtn.textContent = 'Cerrar sesión';
+        chatWrapper.classList.remove('hidden');
+      } else {
+        loginBtn.textContent = 'Iniciar sesión con Google';
+        chatWrapper.classList.add('hidden');
+      }
+    });
+
+    loginBtn.addEventListener('click', () => {
+      if (auth.currentUser) {
+        auth.signOut();
+      } else {
+        auth.signInWithPopup(provider)
+          .catch(e => alert('Error al iniciar sesión: ' + e.message));
+      }
+    });
+
+    chatForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const input = userInput.value.trim();
+      if (!input) return;
+
+      chatBox.innerHTML += `<div class="msg user"><strong>Tú:</strong> ${input}</div>`;
+      userInput.value = '';
+      chatBox.innerHTML += `<div class="msg ai" id="loading"><em>AI está escribiendo...</em></div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const response = await fetch("/.netlify/functions/sendMessage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: input })
+        });
+
+        const data = await response.json();
+        document.getElementById('loading').remove();
+        chatBox.innerHTML += `<div class="msg ai"><strong>AI:</strong> ${data.reply || 'Error'}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (e) {
+        document.getElementById('loading').remove();
+        chatBox.innerHTML += `<div class="msg ai"><strong>AI:</strong> Error al conectar con el servidor</div>`;
+      }
+    };
+  </script>
+</body>
+</html>
