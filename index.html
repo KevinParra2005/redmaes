@@ -83,7 +83,8 @@
       chatBox.scrollTop = chatBox.scrollHeight;
 
       try {
-        const response = await fetch("/.netlify/functions/sendMessage", {
+        // OJO: Aquí es importante que sea sendmessage (todo minúscula, igual que el archivo en netlify/functions)
+        const response = await fetch("/.netlify/functions/sendmessage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: input })
