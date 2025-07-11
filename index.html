@@ -16,12 +16,22 @@
     .msg { margin: 10px 0; }
     .user { color: #fff; }
     .ai { color: #53a7f7; }
+    img { display: block; margin-top: 5px; }
   </style>
 </head>
 <body>
   <h1>Talk to the AI</h1>
   <button id="loginBtn">Iniciar sesión con Google</button>
   <div id="chatWrapper" class="chat-container hidden">
+
+    <!-- Formulario para subir imagen -->
+    <form id="imgUploadForm" style="margin-bottom: 10px;">
+      <input type="file" id="imgInput" accept="image/*" />
+      <button type="submit">Subir imagen</button>
+    </form>
+    <div id="uploadStatus"></div>
+
+    <!-- Chat -->
     <form id="chatForm" autocomplete="off" style="display: flex;">
       <input type="text" id="userInput" placeholder="Escribe tu mensaje..." required />
       <button type="submit" id="sendBtn">Enviar</button>
@@ -32,6 +42,7 @@
   <!-- Firebase SDK CDN -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
   <script>
     // Tu configuración de Firebase
@@ -45,6 +56,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
+    const storage = firebase.storage();
 
     const loginBtn = document.getElementById('loginBtn');
     const chatWrapper = document.getElementById('chatWrapper');
@@ -52,6 +64,9 @@
     const userInput = document.getElementById('userInput');
     const chatBox = document.getElementById('chatBox');
     const chatForm = document.getElementById('chatForm');
+    const imgUploadForm = document.getElementById('imgUploadForm');
+    const imgInput = document.getElementById('imgInput');
+    const uploadStatus = document.getElementById('uploadStatus');
 
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -72,6 +87,7 @@
       }
     });
 
+    // Formulario de texto del chat
     chatForm.onsubmit = async (e) => {
       e.preventDefault();
       const input = userInput.value.trim();
@@ -83,7 +99,6 @@
       chatBox.scrollTop = chatBox.scrollHeight;
 
       try {
-        // OJO: Aquí es importante que sea sendmessage (todo minúscula, igual que el archivo en netlify/functions)
         const response = await fetch("/.netlify/functions/sendmessage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -98,6 +113,34 @@
         document.getElementById('loading').remove();
         chatBox.innerHTML += `<div class="msg ai"><strong>AI:</strong> Error al conectar con el servidor</div>`;
       }
+    };
+
+    // Subida de imágenes
+    imgUploadForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const file = imgInput.files[0];
+      if (!file) return;
+
+      if (!auth.currentUser) {
+        uploadStatus.textContent = "Debes iniciar sesión para subir imágenes.";
+        return;
+      }
+
+      uploadStatus.textContent = "Subiendo imagen...";
+
+      const storageRef = storage.ref(`images/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
+      try {
+        await storageRef.put(file);
+        const url = await storageRef.getDownloadURL();
+        uploadStatus.innerHTML = "Imagen subida correctamente.<br><a href='" + url + "' target='_blank'>Ver imagen</a>";
+
+        // Muestra la imagen en el chat
+        chatBox.innerHTML += `<div class="msg user"><strong>Tú:</strong> <img src="${url}" style="max-width:180px;max-height:180px;border-radius:8px;margin-top:4px;" /></div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        uploadStatus.textContent = "Error al subir imagen: " + err.message;
+      }
+      imgInput.value = "";
     };
   </script>
 </body>
