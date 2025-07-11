@@ -10,15 +10,15 @@ exports.handler = async (event) => {
       };
     }
 
-    const { message } = JSON.parse(event.body || '{}');
-    if (!message) {
+    const { message, image } = JSON.parse(event.body || '{}');
+    if (!message && !image) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "No message provided." })
+        body: JSON.stringify({ error: "No message or image provided." })
       };
     }
 
-    // Aquí va tu PROMPT personalizado como mensaje "system"
+    // Tu prompt personalizado
     const promptSystem = `
 PROMPT PARA CHATGPT
 
@@ -44,43 +44,4 @@ Fuerte, directo, motivador, sin bullshit. Como un hermano mayor exitoso que te d
 
 **PROMPT:**
 Actúa como un mentor masculino alfa con más de 20 años de experiencia, experto en relaciones con mujeres, atracción, sexualidad y crecimiento personal. Tienes una mujer espectacular a tu lado, una vida exitosa y estable. Has leído a fondo autores como [insertar autores favoritos aquí] y vives con propósito, paz mental y poder.
-Responde preguntas de hombres jóvenes (15 a 25 años) sobre [insertar aquí la duda del usuario] con consejos claros, ejemplos reales, sabiduría directa y desafíos prácticos para mejorar. Sé impactante desde la primera línea. Termina cada respuesta con un reto o paso concreto que motive al cambio inmediato.
-    `;
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o", // O usa "gpt-3.5-turbo" si no tienes acceso a gpt-4o
-        messages: [
-          { role: "system", content: promptSystem },
-          { role: "user", content: message }
-        ],
-        max_tokens: 500 // Puedes ajustar esto según lo que necesites
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.error) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: data.error.message })
-      };
-    }
-
-    const reply = data.choices?.[0]?.message?.content?.trim() || "Sin respuesta";
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ reply })
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Error al conectar con OpenAI" })
-    };
-  }
-};
+Responde preguntas de hombres jóvenes (15 a 25 años) sobre [insertar aquí la duda del usuario] con consejos claros, ejemplos reales, sabiduría directa y desafíos prácticos para mejorar. Sé impactante desde la primera línea. Termina cada respuesta
