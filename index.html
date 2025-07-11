@@ -16,36 +16,28 @@
     .msg { margin: 10px 0; }
     .user { color: #fff; }
     .ai { color: #53a7f7; }
-    img { display: block; margin-top: 5px; }
+    #imagePreview { max-width: 100%; margin-top: 10px; }
   </style>
 </head>
 <body>
   <h1>Talk to the AI</h1>
   <button id="loginBtn">Iniciar sesión con Google</button>
   <div id="chatWrapper" class="chat-container hidden">
-
-    <!-- Formulario para subir imagen -->
-    <form id="imgUploadForm" style="margin-bottom: 10px;">
-      <input type="file" id="imgInput" accept="image/*" />
-      <button type="submit">Subir imagen</button>
-    </form>
-    <div id="uploadStatus"></div>
-
-    <!-- Chat -->
-    <form id="chatForm" autocomplete="off" style="display: flex;">
-      <input type="text" id="userInput" placeholder="Escribe tu mensaje..." required />
-      <button type="submit" id="sendBtn">Enviar</button>
+    <form id="chatForm" autocomplete="off" style="display: flex; flex-direction: column;">
+      <input type="file" id="imageInput" accept="image/*" />
+      <img id="imagePreview" src="" style="display:none;"/>
+      <div style="display: flex;">
+        <input type="text" id="userInput" placeholder="Escribe tu mensaje..." required />
+        <button type="submit" id="sendBtn">Enviar</button>
+      </div>
     </form>
     <div id="chatBox"></div>
   </div>
 
-  <!-- Firebase SDK CDN -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-
   <script>
-    // Tu configuración de Firebase
+    // Firebase config (tuya)
     const firebaseConfig = {
       apiKey: "AIzaSyC0x4NCSoSCi8wZG9s71GiA_0rK0Xu25GM",
       authDomain: "redmaesxx.firebaseapp.com",
@@ -56,7 +48,6 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
-    const storage = firebase.storage();
 
     const loginBtn = document.getElementById('loginBtn');
     const chatWrapper = document.getElementById('chatWrapper');
@@ -64,9 +55,9 @@
     const userInput = document.getElementById('userInput');
     const chatBox = document.getElementById('chatBox');
     const chatForm = document.getElementById('chatForm');
-    const imgUploadForm = document.getElementById('imgUploadForm');
-    const imgInput = document.getElementById('imgInput');
-    const uploadStatus = document.getElementById('uploadStatus');
+    const imageInput = document.getElementById('imageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    let imageBase64 = "";
 
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -87,13 +78,25 @@
       }
     });
 
-    // Formulario de texto del chat
+    // Mostrar preview de imagen
+    imageInput.addEventListener('change', function () {
+      if (imageInput.files && imageInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          imageBase64 = e.target.result.split(',')[1]; // solo base64
+          imagePreview.src = e.target.result;
+          imagePreview.style.display = 'block';
+        };
+        reader.readAsDataURL(imageInput.files[0]);
+      }
+    });
+
     chatForm.onsubmit = async (e) => {
       e.preventDefault();
       const input = userInput.value.trim();
-      if (!input) return;
+      if (!input && !imageBase64) return;
 
-      chatBox.innerHTML += `<div class="msg user"><strong>Tú:</strong> ${input}</div>`;
+      chatBox.innerHTML += `<div class="msg user"><strong>Tú:</strong> ${input ? input : ''}${imageBase64 ? " [imagen enviada]" : ''}</div>`;
       userInput.value = '';
       chatBox.innerHTML += `<div class="msg ai" id="loading"><em>AI está escribiendo...</em></div>`;
       chatBox.scrollTop = chatBox.scrollHeight;
@@ -102,8 +105,11 @@
         const response = await fetch("/.netlify/functions/sendmessage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: input })
+          body: JSON.stringify({ message: input, image: imageBase64 })
         });
+        imageBase64 = "";
+        imagePreview.src = "";
+        imagePreview.style.display = "none";
 
         const data = await response.json();
         document.getElementById('loading').remove();
@@ -113,34 +119,6 @@
         document.getElementById('loading').remove();
         chatBox.innerHTML += `<div class="msg ai"><strong>AI:</strong> Error al conectar con el servidor</div>`;
       }
-    };
-
-    // Subida de imágenes
-    imgUploadForm.onsubmit = async (e) => {
-      e.preventDefault();
-      const file = imgInput.files[0];
-      if (!file) return;
-
-      if (!auth.currentUser) {
-        uploadStatus.textContent = "Debes iniciar sesión para subir imágenes.";
-        return;
-      }
-
-      uploadStatus.textContent = "Subiendo imagen...";
-
-      const storageRef = storage.ref(`images/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
-      try {
-        await storageRef.put(file);
-        const url = await storageRef.getDownloadURL();
-        uploadStatus.innerHTML = "Imagen subida correctamente.<br><a href='" + url + "' target='_blank'>Ver imagen</a>";
-
-        // Muestra la imagen en el chat
-        chatBox.innerHTML += `<div class="msg user"><strong>Tú:</strong> <img src="${url}" style="max-width:180px;max-height:180px;border-radius:8px;margin-top:4px;" /></div>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
-      } catch (err) {
-        uploadStatus.textContent = "Error al subir imagen: " + err.message;
-      }
-      imgInput.value = "";
     };
   </script>
 </body>
