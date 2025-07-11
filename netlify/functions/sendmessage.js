@@ -18,7 +18,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // Tu prompt personalizado aquí
+    // PROMPT personalizado (system)
     const promptSystem = `
 PROMPT PARA CHATGPT
 
@@ -46,21 +46,21 @@ Fuerte, directo, motivador, sin bullshit. Como un hermano mayor exitoso que te d
 Actúa como un mentor masculino alfa con más de 20 años de experiencia, experto en relaciones con mujeres, atracción, sexualidad y crecimiento personal. Tienes una mujer espectacular a tu lado, una vida exitosa y estable. Has leído a fondo autores como [insertar autores favoritos aquí] y vives con propósito, paz mental y poder.
 Responde preguntas de hombres jóvenes (15 a 25 años) sobre [insertar aquí la duda del usuario] con consejos claros, ejemplos reales, sabiduría directa y desafíos prácticos para mejorar. Sé impactante desde la primera línea. Termina cada respuesta con un reto o paso concreto que motive al cambio inmediato.
 
-Antes de que empieces a ejecutar la tarea, hazme todas las preguntas paso a paso que necesites para cumplirla al 100%
+Antes de que empieces a ejecutar la tarea, hazme todas las preguntas paso a paso que necesites para cumplirla al 100%.
     `;
 
-    // Armado de mensajes para OpenAI
+    // Construye el array de mensajes para OpenAI (Vision)
     const messages = [
       { role: "system", content: promptSystem }
     ];
 
-    // Si hay imagen, se envía como contenido tipo "multimodal" (vision)
     if (image) {
+      // Mensaje multimodal (texto + imagen base64)
       messages.push({
         role: "user",
         content: [
           { type: "text", text: message || "Analiza la imagen" },
-          { type: "image_url", image_url: { "url": `data:image/jpeg;base64,${image}` } }
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } }
         ]
       });
     } else {
@@ -71,7 +71,6 @@ Antes de que empieces a ejecutar la tarea, hazme todas las preguntas paso a paso
       });
     }
 
-    // Llamada a OpenAI con Vision (gpt-4o)
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -79,9 +78,9 @@ Antes de que empieces a ejecutar la tarea, hazme todas las preguntas paso a paso
         "Authorization": `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "gpt-4o", // Soporta texto e imágenes
+        model: "gpt-4o",
         messages,
-        max_tokens: 600 // Ajusta según tu necesidad
+        max_tokens: 600
       })
     });
 
