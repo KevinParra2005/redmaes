@@ -2,22 +2,86 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Talk to the AI</title>
   <style>
-    body { background: #181818; color: #fff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 40px; }
+    body {
+      background: #181818;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+
     h1 { margin-bottom: 24px; }
+
     #loginBtn { max-width: 300px; margin-bottom: 20px; }
-    .chat-container { background: #222; padding: 20px; border-radius: 10px; width: 100%; max-width: 600px; margin-top: 20px; }
+
+    .chat-container {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
+    }
+
     .hidden { display: none; }
-    input[type="text"] { width: 80%; padding: 10px; border-radius: 5px; border: none; margin-bottom: 10px; }
-    button { padding: 10px; border: none; border-radius: 5px; background: #0f62fe; color: #fff; cursor: pointer; margin-left: 8px;}
+
+    input[type="text"] {
+      width: 80%;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #0f62fe;
+      color: #fff;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+
     button:hover { background: #2979ff; }
-    #chatBox { min-height: 120px; margin-top: 16px; }
+
+    #chatBox {
+      min-height: 120px;
+      margin-top: 16px;
+      max-width: 100%;
+      overflow-wrap: break-word;
+    }
+
     .msg { margin: 10px 0; }
     .user { color: #fff; }
     .ai { color: #53a7f7; }
-    #imagePreview { max-width: 250px; max-height: 150px; margin-top: 10px; border-radius: 8px; box-shadow: 0 0 10px #1116; }
-    #imageLabel { margin-bottom: 3px; font-size: 15px; color: #aaa; }
+
+    #imagePreview {
+      max-width: 100%;
+      max-height: 150px;
+      margin-top: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #1116;
+    }
+
+    #imageLabel {
+      margin-bottom: 3px;
+      font-size: 15px;
+      color: #aaa;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 20px; }
+      .chat-container { padding: 15px; }
+      input[type="text"] { width: 100%; margin-bottom: 10px; }
+      #chatForm > div { flex-direction: column; }
+      button { margin-left: 0; margin-top: 8px; width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -28,7 +92,7 @@
       <label id="imageLabel" for="imageInput">Adjuntar imagen (opcional):</label>
       <input type="file" id="imageInput" accept="image/*" />
       <img id="imagePreview" src="" style="display:none;" alt="Vista previa de imagen"/>
-      <div style="display: flex;">
+      <div style="display: flex; flex-wrap: wrap;">
         <input type="text" id="userInput" placeholder="Escribe tu mensaje..." />
         <button type="submit" id="sendBtn">Enviar</button>
       </div>
@@ -40,7 +104,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script>
-    // Tu configuración de Firebase (ajústala si cambias de proyecto)
     const firebaseConfig = {
       apiKey: "AIzaSyC0x4NCSoSCi8wZG9s71GiA_0rK0Xu25GM",
       authDomain: "redmaesxx.firebaseapp.com",
@@ -52,7 +115,6 @@
     const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    // DOM
     const loginBtn = document.getElementById('loginBtn');
     const chatWrapper = document.getElementById('chatWrapper');
     const sendBtn = document.getElementById('sendBtn');
@@ -63,7 +125,6 @@
     const imagePreview = document.getElementById('imagePreview');
     let imageBase64 = "";
 
-    // Auth
     auth.onAuthStateChanged(user => {
       if (user) {
         loginBtn.textContent = 'Cerrar sesión';
@@ -83,12 +144,11 @@
       }
     });
 
-    // Mostrar preview de imagen y guardar base64
     imageInput.addEventListener('change', function () {
       if (imageInput.files && imageInput.files[0]) {
         const reader = new FileReader();
         reader.onload = function (e) {
-          imageBase64 = e.target.result.split(',')[1]; // solo base64
+          imageBase64 = e.target.result.split(',')[1];
           imagePreview.src = e.target.result;
           imagePreview.style.display = 'block';
         };
@@ -100,14 +160,12 @@
       }
     });
 
-    // Enviar mensaje + imagen opcional
     chatForm.onsubmit = async (e) => {
       e.preventDefault();
       const input = userInput.value.trim();
-      // Solo se permite enviar si hay texto o imagen
       if (!input && !imageBase64) return;
 
-      chatBox.innerHTML += `<div class="msg user"><strong>Tú:</strong> ${input ? input : ''}${imageBase64 ? " [imagen enviada]" : ''}</div>`;
+      chatBox.innerHTML += `<div class="msg user"><strong>Tú:</strong> ${input}${imageBase64 ? " [imagen enviada]" : ''}</div>`;
       userInput.value = '';
       chatBox.innerHTML += `<div class="msg ai" id="loading"><em>AI está escribiendo...</em></div>`;
       chatBox.scrollTop = chatBox.scrollHeight;
@@ -118,7 +176,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: input, image: imageBase64 })
         });
-        // Limpiar imagen después de enviar
+
         imageBase64 = "";
         imageInput.value = "";
         imagePreview.src = "";
